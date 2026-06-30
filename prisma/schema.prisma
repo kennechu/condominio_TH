@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  
+
+}
+
+model Resident {
+  id            String         @id @default(uuid())
+  first_name        String
+  last_name      String
+  correo        String         @unique
+  user_name String
+  password    String
+  role           Role            @default(RESIDENTE)
+  tagId         String?        @unique // Un código numérico corto para que el usuario use en la entrada física
+
+  creationDate DateTime       @default(now())
+  departments Department[]
+}
+
+model Department {
+  id        String    @id @default(uuid()) // Sigue siendo String porque hereda el tipo de relación
+  deptNum    Int
+  tower     String
+  residentId String?
+  resident Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)     
+  payments     Payments[]
+  reservas  Reserve[]
+
+  @@unique([tower, deptNum])
+  @@index([residentId], map: "Dept_residentId_fkey")
+}
+
+model Payments {
+  id             String       @id @default(uuid())
+  amount          Decimal      @db.Decimal(10, 2)
+  month            Int
+  year           Int
+  status        PaymentStatus  @default(PENDIENTE)
+  invoiceUrl String?
+  comment     String?
+  paymentDate      DateTime?
+  creationDate  DateTime     @default(now())
+  departamentId String
+  departament   Department @relation(fields: [departamentId], references: [id])
+
+  @@index([departamentId], map: "Payment_departamentId_fkey")
+}
+
+model Notification {
+  id            String    @id @default(uuid())
+  desc        String
+  content     String    @db.Text
+  creationDate DateTime  @default(now())
+  dateGuaranty DateTime?
+}
+
+model CommonArea {
+  id        String    @id @default(uuid())
+  name    String
+  capacity Int?
+  active    Boolean   @default(true)
+  reserve  Reserve[]
+}
+
+model Reserve {
+  id             String         @id @default(uuid())
+  fecha          DateTime
+  horaInicio     DateTime
+  horaFin        DateTime
+  estatus        ReservationStatus @default(PENDIENTE)
+  fechaCreacion  DateTime       @default(now())
+  departamentId String
+  commonAreaId    String
+  commonArea      CommonArea      @relation(fields: [commonAreaId], references: [id])
+  departament   Department   @relation(fields: [departamentId], references: [id])
+
+  @@index([commonAreaId], map: "Reserve_commonAreaId_fkey")
+  @@index([departamentId], map: "Reserve_departamentId_fkey")
+}
+
+enum Role {
+  ADMINISTRADOR
+  RESIDENTE
+}
+
+enum PaymentStatus {
+  PENDIENTE
+  REVISION
+  APROBADO
+  RECHAZADO
+}
+
+enum ReservationStatus {
+  PENDIENTE
+  APROBADA
+  CANCELADA
+}
